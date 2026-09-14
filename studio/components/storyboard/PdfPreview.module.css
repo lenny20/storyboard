@@ -1,0 +1,88 @@
+.preview {
+  display: grid;
+  min-height: 0;
+  gap: 0.75rem;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.fitControls {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.15rem;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 0.6rem;
+  background: rgb(0 0 0 / 12%);
+}
+
+.pagination {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(7.5rem, auto) 2.75rem;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.navButton {
+  width: 2.75rem;
+  height: 2.25rem;
+}
+
+.pageLabel {
+  color: rgb(255 255 255 / 68%);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.frame {
+  position: relative;
+  display: grid;
+  height: clamp(20rem, 62vh, 46rem);
+  min-height: 0;
+  justify-items: center;
+  align-items: start;
+  overflow: auto;
+  padding: 1rem;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 0.55rem;
+  background: #242522;
+}
+
+@media (max-width: 36rem) {
+  .toolbar {
+    justify-content: center;
+  }
+}
+
+.canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  background: #faf9f4;
+  box-shadow: 0 0.65rem 2rem rgb(0 0 0 / 28%);
+}
+
+.status,
+.error {
+  position: absolute;
+  z-index: 1;
+  inset: 1rem;
+  display: grid;
+  place-items: center;
+  color: rgb(255 255 255 / 66%);
+  font-size: 0.85rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.error {
+  color: #f2b8a5;
+}

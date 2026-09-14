@@ -1,0 +1,10 @@
+.sb-folder-location { margin-top: 20px; }
+.sb-folder-picker-row { display: flex; align-items: center; gap: 8px; }
+.sb-folder-picker-row [data-slot="input"] { min-width: 0; flex: 1; }
+.sb-folder-picker-row [data-slot="button"] { flex-shrink: 0; }
+.sb-folder-location > p { margin-top: 9px; }
+.sb-project-folder { padding: 16px; border: 1px solid var(--sb-line, #34363a); border-radius: 8px; background: #202326; }
+.sb-project-folder > strong { display: block; margin-bottom: 8px; font-size: 14px; }
+.sb-project-folder > p { font-size: 14px; line-height: 1.6; color: #b4b1a9; margin: 8px 0 14px; }
+.sb-folder-path { display: block; overflow-wrap: anywhere; font-size: 14px; color: #e9e7e2; }
+@media (max-width: 550px) { .sb-folder-picker-row { flex-wrap: wrap; } .sb-folder-picker-row [data-slot="input"] { flex-basis: 100%; } }
