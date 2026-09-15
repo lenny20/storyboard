@@ -33,6 +33,7 @@ import type {
 } from '../lib/projects/types';
 
 const pngPath = new URL('./fixtures/review-frame-1.png', import.meta.url);
+const coverPngPath = new URL('./fixtures/review-frame-2.png', import.meta.url);
 
 void test(
   'folder projects round-trip every image reference and metadata saves do not rewrite artwork',
@@ -127,6 +128,75 @@ void test(
       assert.equal(after.ino, before.ino);
       assert.equal(after.mtimeMs, before.mtimeMs);
       assert.equal(second.revision, 2);
+    }),
+);
+
+void test(
+  'a chosen cover image is written to the folder images and resolved back',
+  { concurrency: false },
+  async () =>
+    withIsolatedFolders(async ({ parent, registry }) => {
+      const bytes = await readFile(coverPngPath);
+      const descriptor = imageDescriptor(bytes);
+      const token = assetToken(descriptor);
+      const project = createProject('folder-cover');
+      project.coverImage = {
+        dataUrl: token,
+        mimeType: 'image/png',
+        label: 'chosen-cover.png',
+      };
+      const pending = await beginFolderProject({
+        parentPath: parent,
+        name: 'Cover image',
+        projectId: project.id,
+      });
+      await writeFolderAsset({
+        projectId: project.id,
+        token: pending.token,
+        descriptor,
+        bytes,
+      });
+      await saveFolderProject({
+        projectId: project.id,
+        token: pending.token,
+        expectedRevision: null,
+        project,
+        assets: [descriptor],
+      });
+
+      const manifest = JSON.parse(
+        await readFile(
+          path.join(pending.path, 'project.storyboard.json'),
+          'utf8',
+        ),
+      );
+      assert.equal(manifest.project.coverImage.dataUrl, token);
+      assert.equal(manifest.project.coverImage.label, 'chosen-cover.png');
+      assert.equal(
+        (
+          await stat(
+            path.join(
+              pending.path,
+              'images',
+              `${descriptor.hash}.${descriptor.extension}`,
+            ),
+          )
+        ).size,
+        bytes.byteLength,
+      );
+      configureFolderProjectStorageForTests(registry);
+      assert.deepEqual(
+        (
+          await readFolderAsset(
+            project.id,
+            descriptor.hash,
+            descriptor.extension,
+          )
+        ).bytes,
+        bytes,
+      );
+      const reopened = await openFolderProject(pending.path);
+      assert.equal(reopened.project.coverImage?.dataUrl, token);
     }),
 );
 

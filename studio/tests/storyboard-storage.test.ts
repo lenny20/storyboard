@@ -179,6 +179,57 @@ void test('image payloads are deduplicated and metadata autosaves keep lightweig
   database.close();
 });
 
+void test('a chosen cover image round-trips through validation, the asset store and a backup', async () => {
+  const dataUrl = 'data:image/png;base64,iVBORw0KGgo=';
+  const project = createProject('Cover image persistence');
+  project.coverImage = { dataUrl, mimeType: 'image/png', label: 'cover.png' };
+
+  const parsed = validateProject(JSON.parse(JSON.stringify(project)));
+  assert.deepEqual(parsed.coverImage, project.coverImage);
+  const withoutCover = JSON.parse(JSON.stringify(project)) as Record<
+    string,
+    unknown
+  >;
+  delete withoutCover.coverImage;
+  assert.equal(validateProject(withoutCover).coverImage, undefined);
+  assert.throws(
+    () =>
+      validateProject({
+        ...JSON.parse(JSON.stringify(project)),
+        coverImage: { dataUrl: '', mimeType: 'image/png', label: 'empty.png' },
+      }),
+    /coverImage\.dataUrl/,
+  );
+
+  await saveProject(project, { expectedUpdatedAt: null });
+  const database = await new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open('storyboard-studio', 3);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  const transaction = database.transaction(['projects'], 'readonly');
+  const storedRequest = transaction.objectStore('projects').get(project.id);
+  await new Promise<void>((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+  const stored = storedRequest.result as typeof project;
+  assert.match(stored.coverImage!.dataUrl, /^asset:sha256:/);
+  assert.equal(stored.coverImage!.label, 'cover.png');
+  database.close();
+
+  const hydrated = (await listProjects()).find(
+    (item) => item.id === project.id,
+  );
+  assert.deepEqual(hydrated?.coverImage, project.coverImage);
+
+  const backup = await createProjectBackup(project);
+  const imported = await importProject(
+    new File([backup.blob], backup.filename),
+  );
+  assert.deepEqual(imported.coverImage, project.coverImage);
+});
+
 void test('corrupt records report diagnostics without hiding healthy projects', async () => {
   const healthy = createProject('Healthy alongside corrupt');
   await saveProject(healthy, { expectedUpdatedAt: null });

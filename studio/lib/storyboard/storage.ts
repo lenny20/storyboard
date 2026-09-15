@@ -149,6 +149,7 @@ type StoredAsset = { id: string; dataUrl: string };
 
 function imageDataUrls(project: StoryProject): string[] {
   return [
+    ...(project.coverImage ? [project.coverImage.dataUrl] : []),
     ...project.references.map((reference) => reference.dataUrl),
     ...project.scenes.flatMap((scene) => scene.shots.flatMap((shot) =>
       shot.panels.flatMap((panel) => panel.versions.map((version) => version.dataUrl)))),
@@ -163,6 +164,9 @@ function assetIdsInStoredProject(project: StoryProject): string[] {
 function replaceImageData(project: StoryProject, replacement: (dataUrl: string) => string): StoryProject {
   return {
     ...project,
+    ...(project.coverImage
+      ? { coverImage: { ...project.coverImage, dataUrl: replacement(project.coverImage.dataUrl) } }
+      : {}),
     references: project.references.map((reference) => ({ ...reference, dataUrl: replacement(reference.dataUrl) })),
     scenes: project.scenes.map((scene) => ({
       ...scene,
@@ -219,6 +223,9 @@ async function hydrateStoredProject(store: IDBObjectStore, value: unknown, conte
 function projectWithoutImageData(project: StoryProject): StoryProject {
   return {
     ...project,
+    ...(project.coverImage
+      ? { coverImage: { ...project.coverImage, dataUrl: '' } }
+      : {}),
     references: project.references.map((reference) => ({ ...reference, dataUrl: '' })),
     scenes: project.scenes.map((scene) => ({
       ...scene,
@@ -234,7 +241,7 @@ function projectWithoutImageData(project: StoryProject): StoryProject {
 }
 
 function embeddedImageDataLength(project: StoryProject): number {
-  let length = 0;
+  let length = project.coverImage?.dataUrl.length ?? 0;
   for (const reference of project.references) length += reference.dataUrl.length;
   for (const scene of project.scenes) {
     for (const shot of scene.shots) {

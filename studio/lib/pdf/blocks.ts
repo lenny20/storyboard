@@ -28,7 +28,7 @@ const LETTER_COLUMN = 20;
 const LETTER_GAP = 8;
 /** Vertical space between the items of a caption. */
 const ITEM_GAP = 5;
-/** Gap between a `CAM` or `NOTE` kicker and the text that follows it. */
+/** Gap between a `CAMERA` or `NOTE` label and the text that follows it. */
 const PREFIX_GAP = 6;
 /** A blank line in the dialogue field. */
 const DIALOGUE_BLANK = 6;
@@ -154,8 +154,8 @@ export function planCaption(
   if (source.camera.trim()) {
     push(
       prefixedItem(
-        'CAM',
-        tinted(TYPE.kicker, COLORS.accent),
+        'CAMERA',
+        TYPE.fieldLabel,
         source.camera,
         TYPE.cameraNote,
         fonts,
@@ -199,7 +199,7 @@ export function planCaption(
     push(
       prefixedItem(
         'NOTE',
-        TYPE.kicker,
+        tinted(TYPE.fieldLabel, COLORS.muted),
         source.notes,
         TYPE.cameraNote,
         fonts,
@@ -576,8 +576,8 @@ export function drawFooter(
     page,
     pageNumber,
     geometry.contentRight,
-    geometry.footerBaseline - 1,
-    TYPE.pageNumber,
+    geometry.footerBaseline,
+    TYPE.kicker,
     fonts,
     { align: 'right' },
   );

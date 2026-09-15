@@ -159,6 +159,14 @@ export interface Scene {
   shotConnections?: TimelineConnection[];
 }
 
+/** An image the user picked from disk for the PDF cover page. */
+export interface CoverImage {
+  dataUrl: string;
+  mimeType: string;
+  /** The chosen file's name, shown beside the thumbnail in project settings. */
+  label: string;
+}
+
 export interface StoryProject {
   schemaVersion: 1;
   id: string;
@@ -172,6 +180,8 @@ export interface StoryProject {
   director?: string;
   production?: string;
   contact?: string;
+  /** Cover artwork chosen by the user. Absent means the cover uses the first selected artwork. */
+  coverImage?: CoverImage;
   scenes: Scene[];
   references: ReferenceAsset[];
   referenceGroups?: ReferenceGroup[];
@@ -762,6 +772,21 @@ function dataUrl(value: unknown, path: string, expectedMime?: string): string {
   if (bytes > MAX_EMBEDDED_IMAGE_BYTES)
     fail(path, 'exceeds the 20 MB embedded-image limit');
   return result;
+}
+
+function coverImage(value: unknown): CoverImage | undefined {
+  if (value === undefined) return undefined;
+  const path = '$.coverImage';
+  const source = record(value, path);
+  const mimeType = string(source.mimeType, `${path}.mimeType`);
+  if (!SUPPORTED_IMAGE_MIME_TYPES.has(mimeType.toLowerCase())) {
+    fail(`${path}.mimeType`, 'must be PNG, JPEG, WebP, GIF, or AVIF');
+  }
+  return {
+    dataUrl: dataUrl(source.dataUrl, `${path}.dataUrl`, mimeType),
+    mimeType,
+    label: string(source.label, `${path}.label`, { allowEmpty: true }),
+  };
 }
 
 function isoDate(value: unknown, path: string): string {
@@ -1485,6 +1510,8 @@ export function validateProject(value: unknown): StoryProject {
     },
   );
 
+  const cover = coverImage(source.coverImage);
+
   return {
     schemaVersion: 1,
     id: projectId,
@@ -1512,6 +1539,7 @@ export function validateProject(value: unknown): StoryProject {
       source.contact === undefined
         ? ''
         : string(source.contact, '$.contact', { allowEmpty: true }),
+    ...(cover === undefined ? {} : { coverImage: cover }),
     scenes,
     references,
     referenceGroups,

@@ -38,7 +38,7 @@ frame border and no box around any caption.
 | ink | `#ECE8DF` | primary text, shot numerals, page number |
 | secondary | `#A8A297` | camera note text, cover meta line |
 | muted | `#8F8A80` | kickers, running header right side, footer, parentheticals |
-| accent | `#C9A24A` | panel letters, rails, CAM mark, character cues, cover kicker, contents numerals |
+| accent | `#C9A24A` | panel letters, rails, CAMERA label, character cues, cover kicker, contents numerals |
 | rule | `#333029` | footer rule, cover contents rule |
 
 Artwork is drawn as supplied (greyscale pencil boards look correct on charcoal).
@@ -65,15 +65,15 @@ The complete type scale. Nothing else is used.
 | --- | --- | --- | --- | --- |
 | Shot numeral | Barlow Condensed Light | 44 / 40 | ink | `2.01` (scene.shot, shot two digits) |
 | Shot numeral, shared row | Barlow Condensed Light | 28 / 26 | ink | when two or three single-panel shots share a row |
-| Kicker | Barlow Condensed Medium | 8 / 11, tracking 0.22 em, uppercase | muted unless stated | running header, shot meta, footer, continues lines, framing/angle, "CAM", "NOTE", "ARTWORK PENDING" |
+| Kicker | Barlow Condensed Medium | 8 / 11, tracking 0.22 em, uppercase | muted unless stated | running header, shot meta, footer, continues lines, framing/angle, "ARTWORK PENDING" |
+| Field label | Barlow Medium | 9.5 / 13.5, tracking 0.06 em, uppercase | accent for `CAMERA`, muted for `NOTE` | sits on the note's own baseline and size so it reads as part of the line |
 | Panel letter | Barlow Condensed SemiBold | 16 / 15 | accent | `A` `B` … |
 | Action | Barlow Regular | 10 / 14 | ink | the panel description |
-| Camera note | Barlow Regular | 9.5 / 13.5 | secondary | after the "CAM" kicker |
+| Camera note | Barlow Regular | 9.5 / 13.5 | secondary | after the `CAMERA` field label |
 | Dialogue | Courier Prime | 9.5 / 13.5 | ink; cue in accent; parenthetical muted | |
 | Rail label, type | Barlow Condensed Medium | 8 / 11, tracking 0.14 em, uppercase | accent | `DOLLY` |
 | Rail label, description | Barlow Medium | 8.5 / 11 | ink | `Handheld, frantic, over shoulder` |
 | Rail endpoint | Barlow Condensed Medium | 9 / 11 | ink | `A`, `B`, `(to B)`, `(from A)`, `2.02` |
-| Page number | Barlow Condensed Medium | 13 / 13 | ink | `03 / 11` |
 | Cover kicker | Barlow Condensed Medium | 8 / 11, tracking 0.22 em | accent | `STORYBOARD · TEASER` |
 | Cover title | Barlow Condensed Light | 66 / 60 | ink | wraps to the content width |
 | Cover meta | Barlow Regular | 10.5 / 15 | secondary | |
@@ -94,8 +94,8 @@ Top to bottom:
 3. Footer: rule (0.75 pt, rule colour) across the content width, 8 pt above
    the footer text. Left: kicker `DRAFT 3 · 14 SEP 2026 · 2.39 : 1` (draft
    label omitted when empty; date is the project's updated date, formatted
-   `14 SEP 2026`). Right: page number `03 / 11` counting every page including
-   the cover.
+   `14 SEP 2026`). Right: kicker `PAGE 3 OF 11`, muted like the left side, counting every
+   page including the cover.
 
 No other running text. `STORYBOARD`, `FRAME /`, `N PANELS` on the right, and
 the repeated project title stack are gone.
@@ -153,7 +153,8 @@ Row packing, per shot, in panel order:
   is not drawn separately. This is the only case where a shot heading is small.
 
 Rail: see section 6. Drawn between frames and captions, 14 pt tall plus 4 pt
-above and 3 pt below. Omitted when no connection touches this row.
+above and 3 pt below. Omitted when no connection touches this row; captions
+then follow the frames after a 7 pt gap.
 
 Captions: one caption block per frame in the same columns (section 7). Row
 height = frames + rail + tallest caption.
@@ -235,13 +236,13 @@ text column, 5 pt apart, each omitted when empty:
    are appended: `MCU · LOW ANGLE · THE STARE`.
 2. Action: the panel description, Action style. Line breaks in the source are
    kept.
-3. Camera: the `CAM` kicker in accent, then a 6 pt gap, then the camera text
-   in Camera note style on the same baseline; wrapped lines align with the
-   text start.
+3. Camera: the `CAMERA` field label in accent, then a 6 pt gap, then the
+   camera text in Camera note style on the same baseline; wrapped lines align
+   with the text start.
 4. Dialogue: Dialogue style, no indent, no heading. Parsed with the grammar
    below.
-5. Notes (only with `includeNotes`): the `NOTE` kicker in muted then the note
-   text in Camera note style, same arrangement as Camera.
+5. Notes (only with `includeNotes`): the `NOTE` field label in muted then the
+   note text in Camera note style, same arrangement as Camera.
 
 A panel with no text prints the letter alone.
 
@@ -285,9 +286,10 @@ in CAPITALS, dialogue on the lines beneath. `(V.O.)` and `(beat)` are fine."
 Included by default; export option `includeCover: false` removes it. The cover
 is page 1 and shows no page number.
 
-- Top 43% of the page height: the first selected artwork in project order,
-  drawn full bleed with `cover` fit (centred crop). No artwork anywhere:
-  pending ground.
+- Top 43% of the page height: the cover image, drawn full bleed with `cover`
+  fit (centred crop). The cover image is the project's `coverImage` when the
+  user has chosen one, otherwise the first selected artwork in project order.
+  Neither present: pending ground.
 - Below, inside the side margins, 40 pt from the image:
   - Cover kicker: `STORYBOARD · TEASER` (project `subtitle`, uppercase;
     `STORYBOARD` alone when empty).
@@ -308,6 +310,13 @@ is page 1 and shows no page number.
 `StoryProject` gains optional strings: `subtitle`, `draftLabel`, `director`,
 `production`, `contact`. Project settings gets a "Cover" group with those five
 fields. All default empty; the cover omits empty parts.
+
+`StoryProject` also gains an optional `coverImage` of `{ dataUrl, mimeType,
+label }`. The Cover group lets the user pick any image file from their computer
+(PNG, JPEG, WebP, GIF or AVIF, the same set and the same 20 MB limit as
+reference uploads), shows a thumbnail with the file name, and removes it again.
+The field is absent by default, and the cover then falls back to the first
+selected artwork.
 
 `Panel.action` is removed. Migration on load: when a legacy `action` is
 non-empty and the description does not already contain it, append it to

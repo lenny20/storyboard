@@ -237,14 +237,20 @@ function captionFor(
   );
 }
 
+/** Space between the frames and their captions when no rail is drawn (spec §5.3). */
+const CAPTION_GAP = 7;
+
+/** Vertical space between the bottom of a row's frames and the top of its captions. */
+export function captionOffset(row: RowBlock): number {
+  return row.rail ? row.rail.height : CAPTION_GAP;
+}
+
 function rowHeight(row: RowBlock): number {
   const captions = row.frames.reduce(
     (tallest, frame) => Math.max(tallest, frame.caption.height),
     0,
   );
-  return (
-    row.headingHeight + row.frameHeight + (row.rail?.height ?? 0) + captions
-  );
+  return row.headingHeight + row.frameHeight + captionOffset(row) + captions;
 }
 
 /** Section 6: which connections draw, and with what label. */

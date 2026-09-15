@@ -70,6 +70,11 @@ export const TYPE = {
   panelLetter: style('condensedSemiBold', 16, 15, COLORS.accent),
   action: style('regular', 10, 14, COLORS.ink),
   cameraNote: style('regular', 9.5, 13.5, COLORS.secondary),
+  /** `CAMERA` / `NOTE` before a caption field: same size and family as the note it labels. */
+  fieldLabel: style('medium', 9.5, 13.5, COLORS.accent, {
+    trackingEm: 0.06,
+    uppercase: true,
+  }),
   dialogue: style('mono', 9.5, 13.5, COLORS.ink),
   railType: style('condensedMedium', 8, 11, COLORS.accent, {
     trackingEm: 0.14,
@@ -77,7 +82,6 @@ export const TYPE = {
   }),
   railDescription: style('medium', 8.5, 11, COLORS.ink),
   railEndpoint: style('condensedMedium', 9, 11, COLORS.ink),
-  pageNumber: style('condensedMedium', 13, 13, COLORS.ink),
   coverKicker: style('condensedMedium', 8, 11, COLORS.accent, {
     trackingEm: 0.22,
     uppercase: true,

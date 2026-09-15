@@ -4,7 +4,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { OPS, getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { PDFDict, PDFDocument, PDFName } from 'pdf-lib';
+import { PDFDict, PDFDocument, PDFName, PDFRawStream } from 'pdf-lib';
 import { createStoryboardPdf } from '../lib/pdf/export.ts';
 
 const nativeFetch = globalThis.fetch;
@@ -128,6 +128,24 @@ async function baseFontNames(bytes) {
     }
   }
   return [...names];
+}
+
+/** The hex of every image XObject on the cover page, so covers can be compared. */
+async function coverImageBytes(bytes) {
+  const document = await PDFDocument.load(bytes);
+  const resources = document.getPages()[0].node.Resources();
+  const xObjects = resources?.lookup(PDFName.of('XObject'), PDFDict);
+  if (!xObjects) return [];
+  return [...xObjects.entries()]
+    .map(([, reference]) => document.context.lookup(reference))
+    .filter((stream) => stream instanceof PDFRawStream)
+    .map((stream) => Buffer.from(stream.getContents()).toString('hex'))
+    .sort((left, right) => left.localeCompare(right));
+}
+
+async function fixtureDataUrl(name) {
+  const bytes = await readFile(new URL(`./fixtures/${name}`, import.meta.url));
+  return `data:image/png;base64,${bytes.toString('base64')}`;
 }
 
 // ------------------------------------------------------------------ fixtures
@@ -276,11 +294,11 @@ test('runs a header and a footer, and counts the cover in the page number', asyn
       ?.color,
     MUTED,
   );
-  const numbers = allItems(pages).filter((item) => /^\d\d \/ \d\d$/.test(item.text));
+  const numbers = allItems(pages).filter((item) => /^PAGE \d+ OF \d+$/.test(item.text));
   assert.deepEqual(
     numbers.map((item) => item.text),
     Array.from({ length: pages.length - 1 }, (_, index) =>
-      `${String(index + 2).padStart(2, '0')} / ${String(pages.length).padStart(2, '0')}`,
+      `PAGE ${index + 2} OF ${pages.length}`,
     ),
   );
   assert.ok(
@@ -289,7 +307,7 @@ test('runs a header and a footer, and counts the cover in the page number', asyn
   );
 });
 
-test('numbers a longer document 03 / N on its third page', async () => {
+test('numbers a longer document PAGE 3 OF N on its third page', async () => {
   const bytes = await createStoryboardPdf(
     project([
       scene(
@@ -300,9 +318,11 @@ test('numbers a longer document 03 / N on its third page', async () => {
   );
   const pages = await inspect(bytes);
   assert.ok(pages.length >= 4);
-  const total = String(pages.length).padStart(2, '0');
-  assert.equal(find(pages, `03 / ${total}`).length, 1);
-  assert.equal(find(pages, `03 / ${total}`)[0].page, 3);
+  const total = pages.length;
+  const number = only(pages, `PAGE 3 OF ${total}`);
+  assert.equal(number.page, 3);
+  assert.equal(number.color, MUTED);
+  assert.equal(number.size, 8);
 });
 
 test('prints the draft label when the project carries one', async () => {
@@ -366,6 +386,74 @@ test('builds the cover from the project fields and the scene start pages', async
   }
 });
 
+test('a chosen cover image replaces the first artwork on the cover', async () => {
+  const [first, chosen] = await Promise.all([
+    fixtureDataUrl('review-frame-1.png'),
+    fixtureDataUrl('review-frame-2.png'),
+  ]);
+  const withArtwork = (dataUrl) =>
+    project([
+      scene('s', [
+        shot('a', [
+          panel('a-0', {
+            versions: [{ id: 'v', label: 'v', dataUrl, createdAt: '2026-09-10T00:00:00.000Z' }],
+            selectedVersionId: 'v',
+          }),
+        ]),
+      ]),
+    ]);
+
+  const fallback = await coverImageBytes(await createStoryboardPdf(withArtwork(first)));
+  const chosenCover = await coverImageBytes(
+    await createStoryboardPdf({
+      ...withArtwork(first),
+      coverImage: { dataUrl: chosen, mimeType: 'image/png', label: 'chosen.png' },
+    }),
+  );
+  // The same source at the same cover size encodes identically, so the cover of
+  // a project whose only artwork is the chosen image is the reference bytes.
+  const reference = await coverImageBytes(await createStoryboardPdf(withArtwork(chosen)));
+
+  assert.ok(fallback.length > 0, 'the cover draws the first selected artwork');
+  assert.notDeepEqual(chosenCover, fallback, 'the chosen image is not the first artwork');
+  assert.deepEqual(chosenCover, reference, 'the cover draws the chosen image');
+});
+
+test('removing the cover image falls back to the first artwork', async () => {
+  const [first, chosen] = await Promise.all([
+    fixtureDataUrl('review-frame-1.png'),
+    fixtureDataUrl('review-frame-2.png'),
+  ]);
+  const base = project([
+    scene('s', [
+      shot('a', [
+        panel('a-0', {
+          versions: [
+            { id: 'v', label: 'v', dataUrl: first, createdAt: '2026-09-10T00:00:00.000Z' },
+          ],
+          selectedVersionId: 'v',
+        }),
+      ]),
+    ]),
+  ]);
+  const withCover = {
+    ...base,
+    coverImage: { dataUrl: chosen, mimeType: 'image/png', label: 'chosen.png' },
+  };
+  // What "Remove cover image" leaves behind.
+  const removed = { ...withCover };
+  delete removed.coverImage;
+
+  const drawn = await coverImageBytes(await createStoryboardPdf(withCover));
+  const fallback = await coverImageBytes(await createStoryboardPdf(removed));
+  assert.notDeepEqual(fallback, drawn, 'the chosen image is no longer drawn');
+  assert.deepEqual(
+    fallback,
+    await coverImageBytes(await createStoryboardPdf(base)),
+    'the cover returns to the first selected artwork',
+  );
+});
+
 test('includeCover: false removes the cover and renumbers from one', async () => {
   const scenes = [scene('s', [chainShot('a', 2)])];
   const withCover = await inspect(await createStoryboardPdf(project(scenes)));
@@ -379,7 +467,7 @@ test('includeCover: false removes the cover and renumbers from one', async () =>
     'the cover kicker is gone with the cover',
   );
   assert.equal(find(withCover, 'STORYBOARD').length, 1);
-  assert.equal(find(without, '01 / 01').length, 1);
+  assert.equal(find(without, 'PAGE 1 OF 1').length, 1);
 });
 
 // ------------------------------------------------------------- shot headings
@@ -739,7 +827,7 @@ test('lays out the caption items the spec lists, in order', async () => {
   const letter = only(pages, 'A');
   const meta = only(pages, 'MCU · LOW ANGLE · THE STARE');
   const action = only(pages, 'He does not blink.');
-  const cam = only(pages, 'CAM');
+  const cam = only(pages, 'CAMERA');
   const camera = only(pages, 'Locked off, centre frame.');
   const dialogue = only(pages, 'He waits.');
   const note = only(pages, 'NOTE');

@@ -3,6 +3,7 @@ import { CONTINUES_GAP, splitCaption, type CaptionPlan } from './blocks';
 import type { PageGeometry } from './geometry';
 import {
   SHOT_HEADING_HEIGHT,
+  captionOffset,
   type Atom,
   type Block,
   type CaptionOverflowBlock,
@@ -193,7 +194,7 @@ function splitRow(
   available: number,
 ): CaptionOverflowBlock | null {
   const captionRoom =
-    available - row.headingHeight - row.frameHeight - (row.rail?.height ?? 0);
+    available - row.headingHeight - row.frameHeight - captionOffset(row);
   if (captionRoom <= TYPE.panelLetter.leading) return null;
   const columns: { x: number; caption: CaptionPlan }[] = [];
   let tallest = 0;
@@ -204,7 +205,7 @@ function splitRow(
     if (tail) columns.push({ x: frame.x, caption: tail });
   }
   row.height =
-    row.headingHeight + row.frameHeight + (row.rail?.height ?? 0) + tallest;
+    row.headingHeight + row.frameHeight + captionOffset(row) + tallest;
   if (columns.length === 0) return null;
   const shotRef = row.shotRefs[0];
   const letters = row.frames

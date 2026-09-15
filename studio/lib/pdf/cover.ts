@@ -102,7 +102,8 @@ export async function drawCover(
     color: COLORS.pendingGround,
   });
 
-  const source = firstSelectedArtwork(scenes);
+  // The user's chosen cover image wins; otherwise the first selected artwork.
+  const source = project.coverImage?.dataUrl ?? firstSelectedArtwork(scenes);
   const parsed = source ? parseDataUrl(source) : null;
   if (parsed) {
     const transform = { ...DEFAULT_IMAGE_TRANSFORM, fit: 'cover' as const };

@@ -59,6 +59,7 @@ function json(value: unknown): RequestInit {
 
 function projectImageValues(project: StoryProject): string[] {
   return [
+    ...(project.coverImage ? [project.coverImage.dataUrl] : []),
     ...project.references.map((reference) => reference.dataUrl),
     ...project.scenes.flatMap((scene) =>
       scene.shots.flatMap((shot) =>
@@ -76,6 +77,14 @@ function replaceProjectImages(
 ): StoryProject {
   return {
     ...project,
+    ...(project.coverImage
+      ? {
+          coverImage: {
+            ...project.coverImage,
+            dataUrl: replace(project.coverImage.dataUrl),
+          },
+        }
+      : {}),
     references: project.references.map((reference) => ({
       ...reference,
       dataUrl: replace(reference.dataUrl),

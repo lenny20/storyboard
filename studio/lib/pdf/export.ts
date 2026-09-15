@@ -13,8 +13,8 @@ import {
 } from './blocks';
 import { drawCover } from './cover';
 import { geometryFor, type PageGeometry, type StoryboardPdfLayout } from './geometry';
-import { joinParts, pad2, ratioLabel, shortDate } from './format';
-import { buildPlan, sceneLabel, type Block } from './plan';
+import { joinParts, ratioLabel, shortDate } from './format';
+import { buildPlan, captionOffset, sceneLabel, type Block } from './plan';
 import { paginate, type PageLayout } from './pagination';
 import { renderRail } from './rails';
 import { COLORS, TYPE, baselineFrom, tinted, type Fonts } from './theme';
@@ -169,7 +169,7 @@ export async function createStoryboardPdf(
       artwork,
       project,
       footerLeft,
-      number: `${pad2(index + 1 + offset)} / ${pad2(total)}`,
+      number: `Page ${index + 1 + offset} of ${total}`,
     });
   });
 
@@ -301,10 +301,8 @@ function renderBlock(
         );
       }
       cursor -= block.frameHeight;
-      if (block.rail) {
-        renderRail(page, block.rail, geometry, fonts, cursor);
-        cursor -= block.rail.height;
-      }
+      if (block.rail) renderRail(page, block.rail, geometry, fonts, cursor);
+      cursor -= captionOffset(block);
       for (const frame of block.frames)
         drawCaption(page, frame.caption, frame.x, cursor, fonts);
       return;

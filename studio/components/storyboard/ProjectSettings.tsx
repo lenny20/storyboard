@@ -1,4 +1,5 @@
 'use client';
+/* oxlint-disable next/no-img-element -- The cover thumbnail is a local data URL. */
 
 import { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react';
@@ -26,6 +27,7 @@ import {
 import { Field, IconButton } from './EditorControls';
 
 const presets = [2.39, 16 / 9, 4 / 3, 1];
+const imageAccept = 'image/png,image/jpeg,image/webp,image/gif,image/avif';
 const formatRatio = (ratio: number) => String(Number(ratio.toFixed(4)));
 type Props = {
   project: StoryProject;
@@ -38,6 +40,7 @@ type Props = {
     transform: (project: StoryProject) => StoryProject,
     key?: string,
   ) => boolean;
+  onChooseCoverImage?: (file: File) => void;
   onMoveScene: (delta: number) => void;
   onDeleteScene: () => void;
   onDeleteProject: () => void;
@@ -56,6 +59,7 @@ export default function ProjectSettings({
   open,
   onOpenChange,
   onEdit,
+  onChooseCoverImage,
   onMoveScene,
   onDeleteScene,
   onDeleteProject,
@@ -318,8 +322,45 @@ export default function ProjectSettings({
                 }
               />
             </Field>
+            <Field label="Cover image">
+              <input
+                type="file"
+                className="sb-cover-image-input"
+                accept={imageAccept}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) onChooseCoverImage?.(file);
+                  event.target.value = '';
+                }}
+              />
+            </Field>
+            {project.coverImage && (
+              <div className="sb-cover-image">
+                <img
+                  src={project.coverImage.dataUrl}
+                  alt={`Cover: ${project.coverImage.label}`}
+                />
+                <div className="sb-cover-image-meta">
+                  <span>{project.coverImage.label}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      onEdit(project.id, (current) => {
+                        const next = { ...current };
+                        delete next.coverImage;
+                        return next;
+                      })
+                    }
+                  >
+                    Remove cover image
+                  </Button>
+                </div>
+              </div>
+            )}
             <p className="sb-hint">
-              Printed on the PDF cover page. Empty fields are left off.
+              Printed on the PDF cover page. Empty fields are left off. Without
+              a cover image the cover uses the first artwork in the project.
             </p>
           </section>
           <section className="sb-project-folder" aria-label="Project location">

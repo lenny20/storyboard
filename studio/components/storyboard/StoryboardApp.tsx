@@ -1103,6 +1103,27 @@ export default function StoryboardApp() {
     }
   }
 
+  async function chooseCoverImage(file: File, projectId: string) {
+    setBusy((count) => count + 1);
+    try {
+      preflightFiles([file], projectId);
+      const dataUrl = await imageFileToDataUrl(file);
+      const applied = editProject(projectId, (current) => ({
+        ...current,
+        coverImage: {
+          dataUrl,
+          mimeType: file.type.toLowerCase(),
+          label: file.name,
+        },
+      }));
+      if (applied) setNotice('Cover image set');
+    } catch (cause) {
+      setError(messageOf(cause));
+    } finally {
+      setBusy((count) => count - 1);
+    }
+  }
+
   async function addReferences(
     files: FileList | File[] | null,
     options: { library?: boolean; groupId?: string; kind?: ReferenceKind } = {},
@@ -3636,6 +3657,7 @@ export default function StoryboardApp() {
           open={settingsOpen}
           onOpenChange={setSettingsOpen}
           onEdit={editProject}
+          onChooseCoverImage={(file) => void chooseCoverImage(file, project.id)}
           onBackup={() => backupCurrent()}
           backupBusy={backupBusy}
           folderPath={folderBindings[project.id]?.path}
